@@ -27,7 +27,7 @@ study = StudyDefinition(
     # The rest of the lines define the covariates with associated GitHub issues
     # https://github.com/ebmdatalab/tpp-sql-notebook/issues/33
     age=patients.age_as_of(
-        "2020-02-01",
+        "2020-03-01",
         return_expectations={
             "rate": "universal",
             "int": {"distribution": "population_ages"},
