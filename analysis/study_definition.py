@@ -1,28 +1,40 @@
 from cohortextractor import StudyDefinition, patients, codelist, codelist_from_csv
+from codelists import *
 
-chronic_cardiac_disease_codes = codelist_from_csv(
-    "codelists/opensafely-chronic-cardiac-disease.csv", system="ctv3", column="CTV3ID"
-)
-chronic_liver_disease_codes = codelist_from_csv(
-    "codelists/opensafely-chronic-liver-disease.csv", system="ctv3", column="CTV3ID"
-)
-salbutamol_codes = codelist_from_csv(
-    "codelists/opensafely-asthma-inhaler-salbutamol-medication.csv",
-    system="snomed",
-    column="id",
-)
-systolic_blood_pressure_codes = codelist(["2469."], system="ctv3")
-diastolic_blood_pressure_codes = codelist(["246A."], system="ctv3")
+start_date = "2020-02-01"
+
+
+def days_before(s, days):
+    date = datetime.strptime(s, "%Y-%m-%d")
+    modified_date = date - timedelta(days=days)
+    return datetime.strftime(modified_date, "%Y-%m-%d")
+
 
 study = StudyDefinition(
     # Configure the expectations framework
     default_expectations={
         "date": {"earliest": "1900-01-01", "latest": "today"},
         "rate": "exponential_increase",
+        "incidence": 0.7,
     },
     # This line defines the study population
-    population=patients.registered_with_one_practice_between(
-        "2019-02-01", "2020-02-01"
+    population=patients.satisfying(
+        """
+            (
+               dpp4_treatment
+            OR sglt2_treatment
+            OR sulfonylurea_treatment
+            OR pioglitazone_treatment
+            )
+        AND (age >=18 AND age <= 110)
+        AND has_follow_up
+        AND (sex = "M" OR sex = "F")
+        AND imd > 0
+        AND NOT insulin
+        """,
+        has_follow_up=patients.registered_with_one_practice_between(
+            "2019-02-01", "2020-02-01"
+        ),
     ),
     # The rest of the lines define the covariates with associated GitHub issues
     # https://github.com/ebmdatalab/tpp-sql-notebook/issues/33
@@ -40,26 +52,117 @@ study = StudyDefinition(
             "category": {"ratios": {"M": 0.49, "F": 0.51}},
         }
     ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/7
-    chronic_cardiac_disease=patients.with_these_clinical_events(
-        chronic_cardiac_disease_codes,
+    diabetes_ever=patients.with_these_clinical_events(
+        placeholder_codelist,
+        on_or_before=start_date,
         returning="date",
+        date_format="YYYY-MM-DD",
         find_first_match_in_period=True,
-        include_month=True,
-        return_expectations={"incidence": 0.2},
-    ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/12
-    chronic_liver_disease=patients.with_these_clinical_events(
-        chronic_liver_disease_codes,
-        returning="date",
-        find_first_match_in_period=True,
-        include_month=True,
         return_expectations={
-            "incidence": 0.2,
-            "date": {"earliest": "1950-01-01", "latest": "today"},
+            "incidence": 0.05,
         },
     ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/10
+    dpp4_treatment=patients.with_these_medications(
+        placeholder_med_codelist,
+        between=["2019-10-01", start_date],
+        return_expectations={
+            "incidence": 0.1,
+        },
+    ),
+    sglt2_treatment=patients.with_these_medications(
+        placeholder_med_codelist,
+        between=["2019-10-01", start_date],
+        return_expectations={
+            "incidence": 0.6,
+        },
+    ),
+    sulfonylurea_treatment=patients.with_these_medications(
+        placeholder_med_codelist,
+        between=["2019-10-01", start_date],
+        return_expectations={
+            "incidence": 0.6,
+        },
+    ),
+    pioglitazone_treatment=patients.with_these_medications(
+        placeholder_med_codelist,
+        between=["2019-10-01", start_date],
+        return_expectations={
+            "incidence": 0.6,
+        },
+    ),
+    insulin=patients.with_these_medications(
+        placeholder_med_codelist,
+        on_or_before=start_date,
+        return_expectations={
+            "incidence": 0.6,
+        },
+    ),
+    hospitalised_covid=patients.admitted_to_hospital(
+        with_these_diagnoses=covid_codelist,
+        on_or_after=start_date,
+        returning="date_admitted",
+        date_format="YYYY-MM-DD",
+        find_first_match_in_period=True,
+        return_expectations={
+            "date": {"earliest": start_date},
+            "incidence": 0.2,
+        },
+    ),
+    died_covid=patients.with_these_codes_on_death_certificate(
+        covid_codelist,
+        match_only_underlying_cause=False,
+        on_or_after=start_date,
+        return_expectations={
+            "incidence": 0.2,
+        },
+    ),
+    died_date_ons=patients.died_from_any_cause(
+        on_or_after=start_date,
+        returning="date_of_death",
+        date_format="YYYY-MM-DD",
+        return_expectations={"date": {"earliest": start_date}},
+    ),
+    ethnicity=patients.with_these_clinical_events(
+        ethnicity_codes,
+        returning="category",
+        find_last_match_in_period=True,
+        on_or_before=days_before(start_date, 1),
+        return_expectations={
+            "category": {"ratios": {"1": 0.8, "5": 0.1, "3": 0.1}},
+            "incidence": 0.75,
+        },
+    ),
+    hba1c_mmol_per_mol_1=patients.with_these_clinical_events(
+        hba1c_new_codes,
+        find_last_match_in_period=True,
+        between=[days_before(start_date, 730), start_date],
+        returning="numeric_value",
+        include_date_of_match=False,
+        return_expectations={
+            "float": {"distribution": "normal", "mean": 40.0, "stddev": 20},
+            "incidence": 0.95,
+        },
+    ),
+    hba1c_percentage_1=patients.with_these_clinical_events(
+        hba1c_old_codes,
+        find_last_match_in_period=True,
+        between=[days_before(start_date, 730), start_date],
+        returning="numeric_value",
+        include_date_of_match=False,
+        return_expectations={
+            "float": {"distribution": "normal", "mean": 5, "stddev": 2},
+            "incidence": 0.95,
+        },
+    ),
+    imd=patients.address_as_of(
+        "2020-02-01",
+        returning="index_of_multiple_deprivation",
+        round_to_nearest=100,
+        return_expectations={
+            "rate": "universal",
+            "category": {"ratios": {"100": 0.1, "200": 0.2, "300": 0.7}},
+        },
+    ),
     bmi=patients.most_recent_bmi(
         on_or_after="2010-02-01",
         minimum_age_at_measurement=16,
@@ -70,30 +173,46 @@ study = StudyDefinition(
             "float": {"distribution": "normal", "mean": 35, "stddev": 10},
         },
     ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/35
-    bp_sys=patients.mean_recorded_value(
-        systolic_blood_pressure_codes,
-        on_most_recent_day_of_measurement=True,
-        on_or_before="2020-02-01",
-        include_measurement_date=True,
-        include_month=True,
+    smoking_status=patients.categorised_as(
+        {
+            "S": "most_recent_smoking_code = 'S' OR smoked_last_18_months",
+            "E": """
+                     (most_recent_smoking_code = 'E' OR (
+                       most_recent_smoking_code = 'N' AND ever_smoked
+                       )
+                     ) AND NOT smoked_last_18_months
+                """,
+            "N": "most_recent_smoking_code = 'N' AND NOT ever_smoked",
+            "M": "DEFAULT",
+        },
         return_expectations={
-            "incidence": 0.6,
-            "float": {"distribution": "normal", "mean": 80, "stddev": 10},
+            "category": {"ratios": {"S": 0.6, "E": 0.1, "N": 0.2, "M": 0.1}}
+        },
+        most_recent_smoking_code=patients.with_these_clinical_events(
+            clear_smoking_codes,
+            on_or_before=days_before(start_date, 1),
+            returning="category",
+        ),
+        ever_smoked=patients.with_these_clinical_events(
+            filter_codes_by_category(clear_smoking_codes, include=["S", "E"]),
+            on_or_before=days_before(start_date, 1),
+        ),
+        smoked_last_18_months=patients.with_these_clinical_events(
+            filter_codes_by_category(clear_smoking_codes, include=["S"]),
+            between=[days_before(start_date, 548), start_date],
+        ),
+    ),
+    creatinine=patients.with_these_clinical_events(
+        creatinine_codes,
+        find_last_match_in_period=True,
+        between=["2019-09-16", start_date],
+        returning="numeric_value",
+        return_expectations={
+            "float": {"distribution": "normal", "mean": 150.0, "stddev": 200.0},
+            "date": {"earliest": "2019-09-16", "latest": "2020-03-15"},
+            "incidence": 0.95,
         },
     ),
-    bp_dias=patients.mean_recorded_value(
-        diastolic_blood_pressure_codes,
-        on_most_recent_day_of_measurement=True,
-        on_or_before="2020-02-01",
-        include_measurement_date=True,
-        include_month=True,
-        return_expectations={
-            "incidence": 0.6,
-            "float": {"distribution": "normal", "mean": 120, "stddev": 10},
-        },
-    ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/54
     stp=patients.registered_practice_as_of(
         "2020-02-01",
         returning="stp_code",
@@ -102,39 +221,5 @@ study = StudyDefinition(
             "category": {"ratios": {"STP1": 0.5, "STP2": 0.5}},
         },
     ),
-    msoa=patients.registered_practice_as_of(
-        "2020-02-01",
-        returning="msoa_code",
-        return_expectations={
-            "rate": "universal",
-            "category": {"ratios": {"MSOA1": 0.5, "MSOA2": 0.5}},
-        },
-    ),
     # https://github.com/ebmdatalab/tpp-sql-notebook/issues/52
-    imd=patients.address_as_of(
-        "2020-02-01",
-        returning="index_of_multiple_deprivation",
-        round_to_nearest=100,
-        return_expectations={
-            "rate": "universal",
-            "category": {"ratios": {"100": 0.1, "200": 0.2, "300": 0.7}},
-        },
-    ),
-    rural_urban=patients.address_as_of(
-        "2020-02-01",
-        returning="rural_urban_classification",
-        return_expectations={
-            "rate": "universal",
-            "category": {"ratios": {"rural": 0.1, "urban": 0.9}},
-        },
-    ),
-    recent_salbutamol_count=patients.with_these_medications(
-        salbutamol_codes,
-        between=["2018-02-01", "2020-02-01"],
-        returning="number_of_matches_in_period",
-        return_expectations={
-            "incidence": 0.6,
-            "int": {"distribution": "normal", "mean": 8, "stddev": 2},
-        },
-    ),
 )
