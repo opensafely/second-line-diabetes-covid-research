@@ -1,4 +1,4 @@
-# OpenSAFELY Research Template
+# Second line diabetes drugs in COVID
 
 This is a template repository for making new OpenSAFELY resarch projects.  Eventually it'll become a framework. To get started, create a new repo using this repo as a template, delete this front matter, and edit the text that follows.
 
