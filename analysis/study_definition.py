@@ -1,7 +1,15 @@
-from cohortextractor import StudyDefinition, patients, codelist, codelist_from_csv
+from datetime import datetime, timedelta
+from cohortextractor import (
+    StudyDefinition,
+    patients,
+    codelist,
+    codelist_from_csv,
+    filter_codes_by_category,
+)
 from codelists import *
 
 start_date = "2020-02-01"
+four_months_before_start = "2019-10-01"
 
 
 def days_before(s, days):
@@ -36,8 +44,6 @@ study = StudyDefinition(
             "2019-02-01", "2020-02-01"
         ),
     ),
-    # The rest of the lines define the covariates with associated GitHub issues
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/33
     age=patients.age_as_of(
         "2020-02-01",
         return_expectations={
@@ -45,7 +51,6 @@ study = StudyDefinition(
             "int": {"distribution": "population_ages"},
         },
     ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/46
     sex=patients.sex(
         return_expectations={
             "rate": "universal",
@@ -53,7 +58,7 @@ study = StudyDefinition(
         }
     ),
     diabetes_ever=patients.with_these_clinical_events(
-        placeholder_codelist,
+        type_2_diabetes_codes,
         on_or_before=start_date,
         returning="date",
         date_format="YYYY-MM-DD",
@@ -64,34 +69,34 @@ study = StudyDefinition(
     ),
     dpp4_treatment=patients.with_these_medications(
         placeholder_med_codelist,
-        between=["2019-10-01", start_date],
+        between=[four_months_before_start, start_date],
         return_expectations={
             "incidence": 0.1,
         },
     ),
     sglt2_treatment=patients.with_these_medications(
         placeholder_med_codelist,
-        between=["2019-10-01", start_date],
+        between=[four_months_before_start, start_date],
         return_expectations={
             "incidence": 0.6,
         },
     ),
     sulfonylurea_treatment=patients.with_these_medications(
         placeholder_med_codelist,
-        between=["2019-10-01", start_date],
+        between=[four_months_before_start, start_date],
         return_expectations={
             "incidence": 0.6,
         },
     ),
     pioglitazone_treatment=patients.with_these_medications(
         placeholder_med_codelist,
-        between=["2019-10-01", start_date],
+        between=[four_months_before_start, start_date],
         return_expectations={
             "incidence": 0.6,
         },
     ),
     insulin=patients.with_these_medications(
-        placeholder_med_codelist,
+        insulin_codes,
         on_or_before=start_date,
         return_expectations={
             "incidence": 0.6,
@@ -155,7 +160,7 @@ study = StudyDefinition(
         },
     ),
     imd=patients.address_as_of(
-        "2020-02-01",
+        start_date,
         returning="index_of_multiple_deprivation",
         round_to_nearest=100,
         return_expectations={
@@ -164,12 +169,12 @@ study = StudyDefinition(
         },
     ),
     bmi=patients.most_recent_bmi(
-        on_or_after="2010-02-01",
+        between=[days_before(start_date, 36525), start_date],
         minimum_age_at_measurement=16,
         include_measurement_date=True,
         include_month=True,
         return_expectations={
-            "incidence": 0.6,
+            "incidence": 0.9,
             "float": {"distribution": "normal", "mean": 35, "stddev": 10},
         },
     ),
@@ -213,13 +218,83 @@ study = StudyDefinition(
             "incidence": 0.95,
         },
     ),
+    retinopathy=patients.with_these_clinical_events(
+        placeholder_codelist,
+        on_or_before=start_date,
+        returning="date",
+        date_format="YYYY-MM-DD",
+        find_first_match_in_period=True,
+        return_expectations={
+            "incidence": 0.05,
+        },
+    ),
+    neuropathy=patients.with_these_clinical_events(
+        placeholder_codelist,
+        on_or_before=start_date,
+        returning="date",
+        date_format="YYYY-MM-DD",
+        find_first_match_in_period=True,
+        return_expectations={
+            "incidence": 0.05,
+        },
+    ),
+    cvd=patients.with_these_clinical_events(
+        chronic_cardiac_disease_codes,
+        on_or_before=start_date,
+        returning="date",
+        date_format="YYYY-MM-DD",
+        find_first_match_in_period=True,
+        return_expectations={
+            "incidence": 0.05,
+        },
+    ),
+    region=patients.registered_practice_as_of(
+        start_date,
+        returning="nuts1_region_name",
+        return_expectations={
+            "rate": "universal",
+            "category": {
+                "ratios": {
+                    "North East": 0.1,
+                    "North West": 0.1,
+                    "Yorkshire and The Humber": 0.1,
+                    "East Midlands": 0.1,
+                    "West Midlands": 0.1,
+                    "East": 0.1,
+                    "London": 0.2,
+                    "South East": 0.1,
+                    "South West": 0.1,
+                },
+            },
+        },
+    ),
     stp=patients.registered_practice_as_of(
-        "2020-02-01",
+        start_date,
         returning="stp_code",
         return_expectations={
             "rate": "universal",
-            "category": {"ratios": {"STP1": 0.5, "STP2": 0.5}},
+            "category": {
+                "ratios": {
+                    "STP1": 0.1,
+                    "STP2": 0.1,
+                    "STP3": 0.1,
+                    "STP4": 0.1,
+                    "STP5": 0.1,
+                    "STP6": 0.1,
+                    "STP7": 0.1,
+                    "STP8": 0.1,
+                    "STP9": 0.1,
+                    "STP10": 0.1,
+                }
+            },
         },
     ),
-    # https://github.com/ebmdatalab/tpp-sql-notebook/issues/52
+    practice_id=patients.registered_practice_as_of(
+        start_date,
+        returning="pseudo_id",
+        return_expectations={
+            "int": {"distribution": "normal", "mean": 1000, "stddev": 100},
+            "incidence": 1,
+        },
+    ),
 )
