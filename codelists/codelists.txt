@@ -4,3 +4,4 @@ opensafely/type-2-diabetes/2020-06-29
 opensafely/ethnicity/2020-04-27
 opensafely/insulin-medication/2020-04-26
 opensafely/smoking-clear/2020-04-29
+opensafely/chronic-kidney-disease/2020-04-14
