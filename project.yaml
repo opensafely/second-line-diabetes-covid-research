@@ -22,8 +22,6 @@ actions:
         death_dta: output/analysis_dataset_died_covid.dta
 
   run_all:
-    needs: [derive_ps]
-    # In order to be valid this action needs to define a run commmand and some
     needs: [import_data]
     # In order to be valid this action needs to define a run command and some
     # output. We don't really care what these are but the below does the trick.
