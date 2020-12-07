@@ -10,16 +10,18 @@ actions:
       highly_sensitive:
         cohort: output/input.csv
 
-  do_something:
-    run: stata-mp:latest analysis/do_something.do
+  import_data:
+    run: stata-mp:latest analysis/import_data.do
     needs: [generate_cohorts]
     outputs:
       moderately_sensitive:
-        log: logs/model.log
+        import_data_log: output/logs/import_data.log
+      highly_sensitive:
+        analysis_dataset: output/analysis_dataset.dta
 
   run_all:
-    needs: [do_something]
-    # In order to be valid this action needs to define a run commmand and some
+    needs: [import_data]
+    # In order to be valid this action needs to define a run command and some
     # output. We don't really care what these are but the below does the trick.
     # In a future release of the platform, this special action won't need to be
     # defined at all.

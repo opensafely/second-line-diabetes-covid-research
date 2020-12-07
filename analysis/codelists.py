@@ -34,6 +34,9 @@ creatinine_codes = codelist(
     ],
     system="ctv3",
 )
+esrf_codes = codelist_from_csv(
+    "codelists/opensafely-chronic-kidney-disease.csv", system="ctv3", column="CTV3ID",
+)
 
 type_2_diabetes_codes = codelist_from_csv(
     "codelists/opensafely-chronic-cardiac-disease.csv",
