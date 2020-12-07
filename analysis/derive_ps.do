@@ -2,13 +2,13 @@ do `c(pwd)'/analysis/global.do
 * Open a log file
 
 cap log close
-log using $logdir\derive_ps, replace t
+log using $logdir/derive_ps, replace t
 
 use $outdir/analysis_dataset, clear
 
 /* PS Model===================================================================*/
 
-mlogit exposure i.male age1 age2 age3, base(1)
+mlogit exposure i.male age1 age2 age3 $varlist, base(1)
 predict p1 p2 p3, pr 
 
 bysort exposure: summarize p1 
@@ -24,7 +24,7 @@ summarize check
 * Plot and export graphs of the PS distribution 
 graph twoway kdensity p1 if exposure == 1 || ///
              kdensity p1 if exposure == 2 || ///
-             kdensity p2 if exposure == 3, ///
+             kdensity p1 if exposure == 3, ///
                 graphregion(fcolor(white)) ///
                 legend(size(small) ///
                 label(1 "P1 - DPP4i") ///
@@ -32,7 +32,7 @@ graph twoway kdensity p1 if exposure == 1 || ///
                 label (3 "P1 - Sulfonylurea") ///
                 region(lwidth(none))) 
 
-graph export "$tabfigdir/psplot1.svg", as(svg) replace
+graph export $tabfigdir/psplot1.svg, as(svg) replace
 graph close
 
 graph twoway kdensity p2 if exposure == 1 || ///
@@ -45,7 +45,7 @@ graph twoway kdensity p2 if exposure == 1 || ///
                 label (3 "P2 - Sulfonylurea") ///
                 region(lwidth(none))) 
 
-graph export "$tabfigdir/psplot2.svg", as(svg) replace
+graph export $tabfigdir/psplot2.svg, as(svg) replace
 graph close
 
 graph twoway kdensity p3 if exposure == 1 || ///
@@ -58,7 +58,7 @@ graph twoway kdensity p3 if exposure == 1 || ///
                 label (3 "P3 - Sulfonylurea") ///
                 region(lwidth(none))) 
 
-graph export "$tabfigdir/psplot3.svg", as(svg) replace
+graph export $tabfigdir/psplot3.svg, as(svg) replace
 graph close
 
 * Estimate and tabulate standardised differences 
@@ -76,10 +76,10 @@ local lab2: label exposure 2
 local lab3: label exposure 3
 
 cap file close tablecontent
-file open tablecontent using $outdir/table_stddiff.txt, write text replace
+file open tablecontent using $tabfigdir/table_stddiff.txt, write text replace
 
 file write tablecontent ("Table S1: Standardised differences before weighting") _n
-file write tablecontent ("Variable") _tab ("SD - `lab1' vs `lab0'") _tab ("SD - `lab2' vs `lab0'") _n 
+file write tablecontent ("Variable") _tab ("SD - `lab2' vs `lab1'") _tab ("SD - `lab3' vs `lab1'") _n 
 
 *Gender
 
@@ -150,7 +150,7 @@ graph twoway kdensity p1 if exposure == 1  [fw = ipw_f] || ///
                 label (3 "P1 - Sulfonylurea") ///
                 region(lwidth(none))) 
 
-graph export "$tabfigdir/psplot4.svg", as(svg) replace
+graph export $tabfigdir/psplot4.svg, as(svg) replace
 graph close
 
 graph twoway kdensity p2 if exposure == 1  [fw = ipw_f]|| ///
@@ -158,12 +158,12 @@ graph twoway kdensity p2 if exposure == 1  [fw = ipw_f]|| ///
              kdensity p2 if exposure == 3  [fw = ipw_f], ///
                 graphregion(fcolor(white)) ///
                 legend(size(small) ///
-                label(1 "P1 - DPP4i") ///
-                label (2 "P1 - SGLT2i") ///
-                label (3 "P1 - Sulfonylurea") ///
+                label(1 "P2 - DPP4i") ///
+                label (2 "P2 - SGLT2i") ///
+                label (3 "P2 - Sulfonylurea") ///
                 region(lwidth(none))) 
 
-graph export "$tabfigdir/psplot5.svg", as(svg) replace
+graph export $tabfigdir/psplot5.svg, as(svg) replace
 graph close
 
 graph twoway kdensity p3 if exposure == 1  [fw = ipw_f]|| ///
@@ -171,12 +171,12 @@ graph twoway kdensity p3 if exposure == 1  [fw = ipw_f]|| ///
              kdensity p3 if exposure == 3  [fw = ipw_f], ///
                 graphregion(fcolor(white)) ///
                 legend(size(small) ///
-                label(1 "P1 - DPP4i") ///
-                label (2 "P1 - SGLT2i") ///
-                label (3 "P1 - Sulfonylurea") ///
+                label(1 "P3 - DPP4i") ///
+                label (2 "P3 - SGLT2i") ///
+                label (3 "P3 - Sulfonylurea") ///
                 region(lwidth(none))) 
 
-graph export "$tabfigdir/psplot6.svg", as(svg) replace
+graph export $tabfigdir/psplot6.svg, as(svg) replace
 graph close
 
 
@@ -193,7 +193,7 @@ cap file close tablecontent
 file open tablecontent using $tabfigdir/table_stddiff2.txt, write text replace
 
 file write tablecontent ("Table S2: Standardised differences after weighting - ATE") _n
-file write tablecontent ("Variable") _tab ("SD - `lab1' vs `lab0'") _tab ("SD - `lab2` vs `lab0'") _n 
+file write tablecontent ("Variable") _tab ("SD - `lab2' vs `lab1'") _tab ("SD - `lab3` vs `lab1'") _n 
 
 *Gender
 
@@ -233,7 +233,6 @@ foreach comorb in $varlist {
 }
 
 file close tablecontent
-
 
 /* Output weighted dataset for analyses=======================================*/
 

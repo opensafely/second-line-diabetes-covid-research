@@ -25,6 +25,14 @@ actions:
     outputs:
       moderately_sensitive:
         derive_ps_log: output/logs/derive_ps.log
+        psplot1: output/tabfig/psplot1.svg
+        psplot2: output/tabfig/psplot2.svg
+        psplot3: output/tabfig/psplot3.svg
+        psplot4: output/tabfig/psplot4.svg
+        psplot5: output/tabfig/psplot5.svg
+        psplot6: output/tabfig/psplot6.svg
+        table_stddiff: output/tabfig/table_stddiff.txt
+        table_stddiff2: output/tabfig/table_stddiff2.txt
       highly_sensitive:
         analysis_dataset_ps: output/analysis_dataset_ps.dta
 

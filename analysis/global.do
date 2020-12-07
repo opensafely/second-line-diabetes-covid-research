@@ -18,3 +18,14 @@ global last_data_date "2020-10-01"
 di "$last_data_date"
 
 adopath + "$projectdir/analysis/ado"
+
+global varlist      ///
+    i.hba1ccat      ///
+    i.imd           ///
+    i.bmicat        ///
+    i.smoke_nomiss  ///
+    i.ckd           ///
+    i.retinopathy   ///
+    i.neuropathy    ///
+    i.cvd           ///
+    i.stp
