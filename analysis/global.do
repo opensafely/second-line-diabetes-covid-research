@@ -16,3 +16,5 @@ global indexdate "2020-02-01"
 di "$indexdate"
 global last_data_date "2020-10-01"
 di "$last_data_date"
+
+adopath + "$projectdir/analysis/ado"

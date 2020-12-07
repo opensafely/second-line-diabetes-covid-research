@@ -19,8 +19,17 @@ actions:
       highly_sensitive:
         analysis_dataset: output/analysis_dataset.dta
 
-  run_all:
+  derive_ps:
+    run: stata-mp:latest analysis/derive_ps.do
     needs: [import_data]
+    outputs:
+      moderately_sensitive:
+        derive_ps_log: output/logs/derive_ps.log
+      highly_sensitive:
+        analysis_dataset_ps: output/analysis_dataset_ps.dta
+
+  run_all:
+    needs: [derive_ps]
     # In order to be valid this action needs to define a run command and some
     # output. We don't really care what these are but the below does the trick.
     # In a future release of the platform, this special action won't need to be
