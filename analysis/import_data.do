@@ -201,19 +201,5 @@ replace died_covid          = 0 if (died_date_ons      > last_data_date)
 
 save $outdir/analysis_dataset, replace
 
-stset stime_hospitalised_covid, ///
-    fail(hospitalised_covid)    ///
-    id(patient_id)              ///
-    enter(enter_date)           ///
-    origin(enter_date)    
-save $outdir/analysis_dataset_hospitalised_covid, replace
-
-stset stime_death,      ///
-    fail(died_covid)    ///
-    id(patient_id)      ///
-    enter(enter_date)   ///
-    origin(enter_date)     
-save $outdir/analysis_dataset_died_covid, replace
-
 * Close log file 
 log close

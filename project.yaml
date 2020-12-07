@@ -15,11 +15,9 @@ actions:
     needs: [generate_cohorts]
     outputs:
       moderately_sensitive:
-        log: output/logs/import_data.log
+        import_data_log: output/logs/import_data.log
       highly_sensitive:
-        dta: output/analysis_dataset.dta
-        hosp_dta: output/analysis_dataset_hospitalised_covid.dta
-        death_dta: output/analysis_dataset_died_covid.dta
+        analysis_dataset: output/analysis_dataset.dta
 
   run_all:
     needs: [import_data]
