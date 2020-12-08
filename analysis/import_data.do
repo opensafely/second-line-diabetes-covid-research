@@ -165,6 +165,11 @@ tab hba1ccat
 * Delete unneeded variables
 drop hba1c_pct hba1c_percentage hba1c_mmol_per_mol
 
+* Other binary variables
+foreach var in retinopathy neuropathy cvd {
+    recode `var' . = 0
+}
+
 
 ********* OUTCOME AND SURVIVAL TIME *********
 
@@ -188,7 +193,7 @@ foreach var of varlist      ///
 
 * Survival time = last followup date (first: end study, death, or that outcome)
 gen stime_hospitalised_covid = min(last_data_date, died_date_ons, hospitalised_covid_date)
-gen stime_death              = min(last_data_date, died_date_ons)
+gen stime_died_covid         = min(last_data_date, died_date_ons)
 format  stime* %td
 
 * If outcome was after censoring occurred, set to zero
@@ -197,7 +202,24 @@ recode died_covid         . = 0
 replace hospitalised_covid  = 0 if (hospitalised_covid > last_data_date)
 replace died_covid          = 0 if (died_date_ons      > last_data_date)
 
-********* STSET AND SAVE FOR EACH OUTCOME *********
+** Label key variables
+label var age           "Age"
+label var age1          "Age spline 1"
+label var age2          "Age spline 2"
+label var age3          "Age spline 3"
+label var male          "Male"
+label var hba1ccat      "HbA1c"
+label var imd           "IMD"
+label var bmicat        "BMI"
+label var smoke_nomiss  "Smoking"
+label var ckd           "Chronic kidney disease" 
+label var retinopathy   "Retinopathy" 
+label var neuropathy    "Neuropathy"
+label var cvd           "Cardiovascular disease"
+label var region        "Region"
+label var stp           "STP"
+
+********* SAVE *********
 
 save $outdir/analysis_dataset, replace
 
