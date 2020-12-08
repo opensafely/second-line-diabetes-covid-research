@@ -1,3 +1,5 @@
+* Adapted from https://github.com/opensafely/ics-research/blob/454f673d317843e9498f9b18ada65abd7ec59aa4/analysis/02_cr_create_asthma_exposure.do
+
 do `c(pwd)'/analysis/global.do
 * Open a log file
 

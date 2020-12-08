@@ -193,7 +193,7 @@ foreach var of varlist      ///
 
 * Survival time = last followup date (first: end study, death, or that outcome)
 gen stime_hospitalised_covid = min(last_data_date, died_date_ons, hospitalised_covid_date)
-gen stime_death              = min(last_data_date, died_date_ons)
+gen stime_died_covid         = min(last_data_date, died_date_ons)
 format  stime* %td
 
 * If outcome was after censoring occurred, set to zero

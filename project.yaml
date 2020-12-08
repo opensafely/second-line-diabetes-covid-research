@@ -36,8 +36,24 @@ actions:
       highly_sensitive:
         analysis_dataset_ps: output/analysis_dataset_ps.dta
 
-  run_all:
+  ps_model_died_covid:
+    run: stata-mp:latest analysis/ps_model.do died_covid "death"
     needs: [derive_ps]
+    outputs:
+      moderately_sensitive:
+        log: output/logs/ps_model_died_covid.log
+        table2: output/tabfig/table2_died_covid.txt
+
+  ps_model_hospitalised_covid:
+    run: stata-mp:latest analysis/ps_model.do hospitalised_covid "hospitalisation"
+    needs: [derive_ps]
+    outputs:
+      moderately_sensitive:
+        log: output/logs/ps_model_hospitalised_covid.log
+        table2: output/tabfig/table2_hospitalised_covid.txt
+
+  run_all:
+    needs: [ps_model_died_covid, ps_model_hospitalised_covid]
     # In order to be valid this action needs to define a run command and some
     # output. We don't really care what these are but the below does the trick.
     # In a future release of the platform, this special action won't need to be

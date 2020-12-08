@@ -90,17 +90,17 @@ study = StudyDefinition(
     ),
     exposure=patients.categorised_as(
         {
-            "dpp4i": """
+            "DPP4i": """
                     any_dpp4
                     AND NOT any_sglt2
                     AND NOT any_sulfonylurea
                     """,
-            "sglt2i": """
+            "SGLT2i": """
                     any_sglt2
                     AND NOT any_dpp4
                     AND NOT any_sulfonylurea
                     """,
-            "sulfonylurea": """
+            "Sulfonylureas": """
                     any_sulfonylurea
                     AND NOT any_sglt2
                     AND NOT any_dpp4
@@ -111,9 +111,9 @@ study = StudyDefinition(
             "incidence": 1,
             "category": {
                 "ratios": {
-                    "dpp4i": 0.4,
-                    "sglt2i": 0.3,
-                    "sulfonylurea": 0.3,
+                    "DPP4i": 0.4,
+                    "SGLT2i": 0.3,
+                    "Sulfonylureas": 0.3,
                     "none": 0.0,
                 }
             },
