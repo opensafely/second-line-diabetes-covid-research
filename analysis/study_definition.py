@@ -27,7 +27,7 @@ study = StudyDefinition(
     population=patients.satisfying(
         """
              has_follow_up
-        AND t2dm == 1     
+        AND t2dm = 1     
         AND NOT exposure = "none"
         AND (age >=18 AND age <= 110)
         AND (sex = "M" OR sex = "F")
