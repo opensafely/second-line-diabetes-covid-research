@@ -27,11 +27,11 @@ study = StudyDefinition(
     population=patients.satisfying(
         """
              has_follow_up
+        AND t2dm == 1     
         AND NOT exposure = "none"
         AND (age >=18 AND age <= 110)
         AND (sex = "M" OR sex = "F")
         AND imd > 0
-        AND t2dm 
         """,
         has_follow_up=patients.registered_with_one_practice_between(
             "2019-09-01", "2020-09-01"
@@ -39,6 +39,9 @@ study = StudyDefinition(
     ),
 
     index_date = "2020-09-01",
+    deregistered=patients.date_deregistered_from_all_supported_practices(
+            date_format="YYYY-MM-DD"
+        ),
 #####################    
 ##### T2DM population
 #####################
