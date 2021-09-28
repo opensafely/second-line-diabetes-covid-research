@@ -4,14 +4,15 @@ expectations:
   population_size: 100000
 
 actions:
-  generate_cohorts:
+  generate_cohort:
     run: cohortextractor:latest generate_cohort --study-definition study_definition
     outputs:
       highly_sensitive:
         cohort: output/input.csv
 
-  descriptive_analyss:
+  descriptive_analysis:
     run: stata-mp:latest analysis/000_cr_descriptive_cohort.do 
+    needs: [generate_cohort]
     outputs:
       moderately_sensitive:
         table_1: output/tabfig/table_1.csv
