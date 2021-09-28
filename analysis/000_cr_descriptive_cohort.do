@@ -170,7 +170,7 @@ label values ethnicity ethnicity_lab
 
 /*  Geographical location  */
 
-* Region
+/* Region
 rename region region_string
 assert inlist(region_string, 								///
 					"East Midlands", 						///
@@ -218,7 +218,7 @@ label define region_7 	1 "East"							///
 label values region_7 region_7
 label var region_7 "Region of England (7 regions)"
 drop region_string
-
+*/
 	
 **************************
 *  Categorise variables  *
@@ -512,12 +512,13 @@ label define diab_control 1 "Controlled diabetes"		///
 label values diabcat diab_control
 
 * Delete unneeded variables
+* Region might need to be added later
 keep deregistered_date  other_immunosuppression hospitalised_covid_date ///  
  died_date_ons_date first_comm_covid_date age ethnicity chronic_cardiac_disease hypertension chronic_respiratory_disease ///
  organ_transplant dysplenia sickle_cell spleen hiv permanent_immunodeficiency /// 
  ra_sle_psoriasis other_neuro dementia chronic_liver_disease metformin_3mths exp insulin_meds_3mths hospitalised_covid ///  
  died_covid first_comm_covid patient_id indexdate male imd smoke smoke_nomiss ///  
- region_9  agegroup age1 age2 age3 bmicat obese4cat obese4cat_withmiss hba1ccat diabcat cancer*
+  agegroup age1 age2 age3 bmicat obese4cat obese4cat_withmiss hba1ccat diabcat cancer*
 
 
 order patient_id indexdate exp hospitalised_covid_date died_date_ons_date first_comm_covid_date metformin_3mths insulin_meds_3mths  ///
@@ -628,7 +629,7 @@ post `john2' ("N") (1) (`exp_1_N') (`exp_2_N') (`exp_3_N') (`exp_4_N') (`exp_5_N
 post `john2' ("Demographics") (1) (.) (.) (.) (.) (.)
 
 
-foreach var in agegroup male ethnicity imd region_9 smoke_nomiss obese4cat {
+foreach var in agegroup male ethnicity imd smoke_nomiss obese4cat {
 
 	levelsof `var', local(cats)
 	
@@ -795,7 +796,7 @@ replace category = "3" if variable == "imd" & category2==3
 replace category = "4" if variable == "imd" & category2==4
 replace category = "5 most deprived" if variable == "imd" & category2==5
 
-* region_9
+/* region_9
 replace category = "East Midlands" if variable == "region_9" & category2==1
 replace category = "East" if variable == "region_9" & category2==2
 replace category = "London" if variable == "region_9" & category2==3
@@ -805,6 +806,7 @@ replace category = "South East" if variable == "region_9" & category2==6
 replace category = "South West" if variable == "region_9" & category2==7
 replace category = "West Midlands" if variable == "region_9" & category2==8
 replace category = "Yorkshire and The Humber" if variable == "region_9" & category2==9
+*/
 
 * smoke_nomiss
 replace category = "Never" if variable == "smoke_nomiss" & category2 == 1
