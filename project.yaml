@@ -10,6 +10,9 @@ actions:
       highly_sensitive:
         cohort: output/input.csv
 
-
-
-  
+  descriptive_analyss:
+    run: stata-mp:latest analysis/000_cr_descriptive_cohort.do 
+    outputs:
+      moderately_sensitive:
+        table_1: output/tabfig/table_1.csv
+        desc_stats: output/tabfig/descriptive_stats.csv

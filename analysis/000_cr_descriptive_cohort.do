@@ -21,8 +21,12 @@ local end_date td(01/06/2021)
 
 import delimited $outdir/input.csv
 
+* check population have T2DM
+keep if t2dm == 1
+
 gen indexdate = td(01/09/2020)
 format indexdate %td
+
 noi safecount
 
 ******************************
@@ -48,15 +52,6 @@ capture confirm string variable `var'
 	format `var'_date %td
 }
 
-
-
-* drop if died before discharge date
-*drop if died_date_ons <= indexdate
-
-* Note: There may be deaths recorded after end of our study 
-* Set these to missing
-replace died_date_ons_date = . if died_date_ons_date>`end_date'
-
 * Process variables with nearest month dates only						
 						
 foreach var of varlist 	bmi_date_measured 				///
@@ -81,6 +76,17 @@ rename bmi_date_measured_date      	bmi_date_measured
 rename hba1c_percentage_date_date  	hba1c_percentage_date
 rename hba1c_mmol_per_mol_date_date hba1c_mmol_per_mol_date
 
+
+*******************************
+*  Cleaning
+*******************************
+
+* The default deregistration date is 9999-12-31, so:
+replace deregistered_date = . if deregistered_date > `end_date'
+
+* Note: There may be deaths recorded after end of our study 
+* Set these to missing
+replace died_date_ons_date = . if died_date_ons_date>`end_date'
 
 
 *******************************
@@ -502,8 +508,8 @@ replace diabcat = 3 if !inlist(hba1ccat, 0, 1, 2, 3, 4)
 
 label define diab_control 1 "Controlled diabetes"		///
 						2 "Uncontrolled diabetes" 	///
-						3 "No, hba1c measure"
-label values diabcat diabcat
+						3 "No hba1c measure"
+label values diabcat diab_control
 
 * Delete unneeded variables
 keep deregistered_date  other_immunosuppression hospitalised_covid_date ///  
@@ -511,20 +517,327 @@ keep deregistered_date  other_immunosuppression hospitalised_covid_date ///
  organ_transplant dysplenia sickle_cell spleen hiv permanent_immunodeficiency /// 
  ra_sle_psoriasis other_neuro dementia chronic_liver_disease metformin_3mths exp insulin_meds_3mths hospitalised_covid ///  
  died_covid first_comm_covid patient_id indexdate male imd smoke smoke_nomiss ///  
- region_9  agegroup age1 age2 age3 bmicat obese4cat obese4cat_withmiss hba1ccat diabcat
+ region_9  agegroup age1 age2 age3 bmicat obese4cat obese4cat_withmiss hba1ccat diabcat cancer*
 
 
-order patient_id indexdate expo hospitalised_covid_date died_date_ons_date first_comm_covid_date metformin_3mths insulin_meds_3mths  ///
+order patient_id indexdate exp hospitalised_covid_date died_date_ons_date first_comm_covid_date metformin_3mths insulin_meds_3mths  ///
 hospitalised_covid died_covid first_comm_covid 
 **************
 *  Outcomes  *
 **************	
+gen died  = cond(died_date_ons_date !=., 1,0)
 
-* The default deregistration date is 9999-12-31, so:
-replace deregistered_date = . if deregistered_date > `end_date'
+* Individual outcomes only
+gen comm_only = cond(first_comm_covid == 1 & died_date_ons_date ==. & hospitalised_covid ==0, 1, 0)
+gen hosp_only = cond(hospitalised_covid == 1 & died_date_ons_date ==. & first_comm_covid ==0, 1, 0)
+gen died_only = cond(died == 1 & hospitalised_covid ==0 & first_comm_covid ==0, 1, 0)
+
+* Combinations
+* 2 
+gen comm_death = cond((first_comm_covid_date <= died_date_ons_date) & first_comm_covid == 1 & died_date_ons_date!=. & hospitalised_covid ==0, 1, 0)
+gen comm_hosp  = cond((first_comm_covid_date <= hospitalised_covid_date) & first_comm_covid == 1 & died_date_ons_date==. & hospitalised_covid ==1, 1, 0)
+gen hosp_comm  = cond((hospitalised_covid_date <= first_comm_covid_date) & first_comm_covid ==1 & died_date_ons_date==. & hospitalised_covid ==1, 1, 0)
+gen hosp_death = cond((hospitalised_covid_date <= died_date_ons_date) & first_comm_covid ==0 & died_date_ons_date!=. & hospitalised_covid ==1, 1, 0)
+
+* 3
+gen comm_hosp_death  = cond((first_comm_covid_date <= hospitalised_covid_date <= died_date_ons_date) & first_comm_covid ==1 & died_date_ons_date!=. & hospitalised_covid ==1, 1, 0)
+gen hosp_comm_death  = cond((hospitalised_covid_date <= first_comm_covid_date <= died_date_ons_date) & first_comm_covid ==1 & died_date_ons_date!=. & hospitalised_covid ==1, 1, 0)
+gen death_comm_hosp  = cond((died_date_ons_date <= first_comm_covid_date <= hospitalised_covid_date) & first_comm_covid ==1 & died_date_ons_date!=. & hospitalised_covid ==1, 1, 0)
+gen death_hosp_comm  = cond((died_date_ons_date <= hospitalised_covid_date <= first_comm_covid_date) & first_comm_covid ==1 & died_date_ons_date!=. & hospitalised_covid ==1, 1, 0)
 
 
+**************
+* Output 
+**************
 
-**** Tidy dataset & save
-save $outdir/descriptive_cohort.dta, replace 
+**************
+* 1. Propns
+**************
+tempname john
+
+postfile `john' str20(outcome) str20(treatment) numPatients numEvents propEvents using $tabfigdir/descriptive_stats.dta, replace
+
+foreach out in comm_only hosp_only died_only comm_death comm_hosp hosp_comm hosp_death comm_hosp_death hosp_comm_death death_comm_hosp death_hosp_comm {
+
+	forvalues t = 1/5 {
+		
+			if "`t'" ==  "1"  {
+						local trt_grp = "SGLT2i" 
+						safecount if exp == `t'
+						local N = `r(N)'
+												}
+	
+			if "`t'" ==  "2"  {
+						local trt_grp = "DPP4i" 
+						safecount if exp == `t'
+						local N = `r(N)'
+												}
+	
+			if "`t'" ==  "3"  {
+						local trt_grp = "Sulfonylureas" 
+						safecount if exp == `t'
+						local N = `r(N)'
+												}
+	
+			if "`t'" ==  "4"  {
+						local trt_grp = "Three" 
+						safecount if exp == `t'
+						local N = `r(N)'
+												}
+	
+			if "`t'" ==  "5"  {
+						local trt_grp = "Four" 
+						safecount if exp == `t'
+						local N = `r(N)'
+												}						
+	
+			
+			safecount if `out' == 1 & exp == `t' 
+			local numEvents .
+			if `r(N)' != . local numEvents `r(N)'
+	
+			local prop = round(100*`numEvents'/`N', 0.1)
+	
+	post `john' ("`out'")  ("`trt_grp'") (`N') (`numEvents') (`prop')
+
+	}
+
+}
+postclose `john'
+
+**************
+* 2. Table 1
+**************
+tempname john2
+
+postfile `john2' str25(variable) category SGLT2i DPP4i Sulfs Three Four using $tabfigdir/table_1.dta, replace
+
+safecount if exp == 1 
+local exp_1_N = `r(N)'
+safecount if exp == 2
+local exp_2_N = `r(N)'
+safecount if exp == 3 
+local exp_3_N = `r(N)'
+safecount if exp == 4 
+local exp_4_N = `r(N)'
+safecount if exp == 5
+local exp_5_N = `r(N)'
+
+post `john2' ("N") (1) (`exp_1_N') (`exp_2_N') (`exp_3_N') (`exp_4_N') (`exp_5_N') 
+
+post `john2' ("Demographics") (1) (.) (.) (.) (.) (.)
+
+
+foreach var in agegroup male ethnicity imd region_9 smoke_nomiss obese4cat {
+
+	levelsof `var', local(cats)
+	
+	* Removes category 0 (only us for binary variables)
+	local not 0
+	local cats: list cats- not
+	
+		local i = 1
+		foreach c of local cats { 
+		
+		
+				safecount if `var' == `c' & exp == 1
+				local exp_1_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 2
+				local exp_2_count = `r(N)'
+
+				safecount if `var' == `c' & exp == 3
+				local exp_3_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 4
+				local exp_4_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 5
+				local exp_5_count = `r(N)'
+		
+		if `i' == 1 {
+		post `john2' ("`var'") (`c') (`exp_1_count') (`exp_2_count') (`exp_3_count') (`exp_4_count') (`exp_5_count') 
+		local ++i
+		}
+		else{
+		post `john2' ("`var'") (`c') (`exp_1_count') (`exp_2_count') (`exp_3_count') (`exp_4_count') (`exp_5_count') 
+		}
+	}
+
+}
+
+post `john2' ("Diabetes") (1) (.) (.) (.) (.) (.)
+
+foreach var in diabcat metformin_3mths insulin_meds_3mths  {
+
+	levelsof `var', local(cats)
+	
+	* Removes category 0 (only us for binary variables)
+	local not 0
+	local cats: list cats- not
+		
+		local i = 1
+	
+		foreach c of local cats { 
+		
+		
+				safecount if `var' == `c' & exp == 1
+				local exp_1_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 2
+				local exp_2_count = `r(N)'
+
+				safecount if `var' == `c' & exp == 3
+				local exp_3_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 4
+				local exp_4_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 5
+				local exp_5_count = `r(N)'
+		
+		if `i' == 1 {
+		post `john2' ("`var'") (`c') (`exp_1_count') (`exp_2_count') (`exp_3_count') (`exp_4_count') (`exp_5_count') 
+		local ++i
+		}
+		else{
+		post `john2' ("`var'") (`c') (`exp_1_count') (`exp_2_count') (`exp_3_count') (`exp_4_count') (`exp_5_count') 
+		}
+	}
+
+}
+
+post `john2' ("Clinical characteristics") (1) (.) (.) (.) (.) (.)
+
+foreach var in chronic_cardiac_disease hypertension chronic_respiratory_disease chronic_liver_disease cancer_exhaem_cat cancer_haem_cat permanent_immunodeficiency other_immunosuppression dysplenia sickle_cell spleen hiv ra_sle_psoriasis other_neuro dementia  {
+	
+	levelsof `var', local(cats)
+	local not 0
+	local cats: list cats- not
+		
+		local i = 1
+	
+		foreach c of local cats { 
+		
+				safecount if `var' == `c' & exp == 1
+				local exp_1_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 2
+				local exp_2_count = `r(N)'
+
+				safecount if `var' == `c' & exp == 3
+				local exp_3_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 4
+				local exp_4_count = `r(N)'
+				
+				safecount if `var' == `c' & exp == 5
+				local exp_5_count = `r(N)'
+		
+		if `i' == 1 {
+		post `john2' ("`var'") (`c') (`exp_1_count') (`exp_2_count') (`exp_3_count') (`exp_4_count') (`exp_5_count') 
+		local ++i
+		}
+		else{
+		post `john2' ("`var'") (`c') (`exp_1_count') (`exp_2_count') (`exp_3_count') (`exp_4_count') (`exp_5_count') 
+		}
+	}
+}
+
+postclose `john2'
+
+**** Tidy output save
+save $outdir/descriptive_cohort.dta, replace
+
+use $tabfigdir/descriptive_stats.dta, clear
+export delimited using $tabfigdir/descriptive_stats.csv, replace
+
+use $tabfigdir/table_1.dta, clear
+
+* Add percentages
+local N = SGLT2i[1]
+gen SGLT2i_perc = round(100*SGLT2i/`N',0.1)
+
+local N = DPP4i[1]
+gen DPP4i_perc = round(100*DPP4i/`N',0.1)
+
+local N = Sulfs[1]
+gen Sulfs_perc = round(100*Sulfs/`N',0.1)
+
+local N = Three[1]
+gen Three_perc = round(100*Three/`N',0.1)
+
+local N = Four[1]
+gen Four_perc = round(100*Four/`N',0.1)
+
+* labelling variables
+rename category category2
+
+* agegroup
+gen category = "18-<50" if variable == "agegroup" & category2==1
+replace category = "50-<60" if variable == "agegroup" & category2==2
+replace category = "60-<60" if variable == "agegroup" & category2==3
+replace category = "70-<60" if variable == "agegroup" & category2==4
+replace category = "80+" if variable == "agegroup" & category2==5
+
+* ethnicity
+replace category = "White" if variable == "ethnicity" & category2==1
+replace category = "Mixed" if variable == "ethnicity" & category2==2
+replace category = "Asian or Asian British" if variable == "ethnicity" & category2==3
+replace category = "Black" if variable == "ethnicity" & category2==4
+replace category = "Other" if variable == "ethnicity" & category2==5
+replace category = "Unknown" if variable == "ethnicity" & category2==6
+
+* imd
+replace category = "1 least deprived" if variable == "imd" & category2==1
+replace category = "2" if variable == "imd" & category2==2
+replace category = "3" if variable == "imd" & category2==3
+replace category = "4" if variable == "imd" & category2==4
+replace category = "5 most deprived" if variable == "imd" & category2==5
+
+* region_9
+replace category = "East Midlands" if variable == "region_9" & category2==1
+replace category = "East" if variable == "region_9" & category2==2
+replace category = "London" if variable == "region_9" & category2==3
+replace category = "North East" if variable == "region_9" & category2==4
+replace category = "North West" if variable == "region_9" & category2==5
+replace category = "South East" if variable == "region_9" & category2==6
+replace category = "South West" if variable == "region_9" & category2==7
+replace category = "West Midlands" if variable == "region_9" & category2==8
+replace category = "Yorkshire and The Humber" if variable == "region_9" & category2==9
+
+* smoke_nomiss
+replace category = "Never" if variable == "smoke_nomiss" & category2 == 1
+replace category = "Former" if variable == "smoke_nomiss" & category2 == 2
+replace category = "Current" if variable == "smoke_nomiss" & category2 == 3
+
+* obese4cat
+replace category = "No record of obesity" if variable == "obese4cat" & category2 == 1
+replace category = "Obese I (30-34.9)" if variable == "obese4cat" & category2 == 2
+replace category = "Obese II (35-39.9)" if variable == "obese4cat" & category2 == 3
+replace category = "Obese III (40+)" if variable == "obese4cat" & category2 == 4
+
+
+* diabcat 
+replace category = "Controlled diabetes" if variable == "diabcat" & category2 == 1
+replace category = "Uncontrolled diabetes" if variable == "diabcat" & category2 == 2
+replace category = "No hba1c measure" if variable == "diabcat" & category2 == 3
+
+* cancer
+replace category = "Never" if (variable =="cancer_exhaem_cat" | variable =="cancer_haem_cat") & category2 == 1
+replace category = "Last year" if (variable =="cancer_exhaem_cat" | variable =="cancer_haem_cat") & category2 == 2
+replace category = "2-5 years ago" if (variable =="cancer_exhaem_cat" | variable =="cancer_haem_cat") & category2 == 3
+replace category = "5+ years" if (variable =="cancer_exhaem_cat" | variable =="cancer_haem_cat") & category2 == 4
+
+* Tidy 
+replace category = " - " if variable =="N" 
+
+* Remove old category var 
+replace variable = "" if category2!=1
+drop category2
+order variable category SGLT2i SGLT2i_perc DPP4i DPP4i_perc Sulfs Sulfs_perc Three Three_perc Four Four_perc
+
+export delimited using $tabfigdir/table_1.csv, replace
+
+
 

@@ -19,7 +19,7 @@ def days_before(s, days):
 study = StudyDefinition(
     # Configure the expectations framework
     default_expectations={
-        "date": {"earliest": "1900-01-01", "latest": "today"},
+        "date": {"earliest": "1980-01-01", "latest": "today"},
         "rate": "uniform",
         "incidence": 0.7,
     },
@@ -27,7 +27,7 @@ study = StudyDefinition(
     population=patients.satisfying(
         """
              has_follow_up
-        AND t2dm = 1     
+        AND t2dm = 1      
         AND NOT exposure = "none"
         AND (age >=18 AND age <= 110)
         AND (sex = "M" OR sex = "F")
@@ -101,7 +101,6 @@ study = StudyDefinition(
                 AND
                 (oad_lastyear_meds))
             """,
-            return_expectations={"incidence": 0.5},
         ),
 
 #####################
