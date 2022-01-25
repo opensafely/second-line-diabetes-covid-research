@@ -125,9 +125,6 @@ sulfonylurea=patients.with_these_medications(
     ),
 )
 
-
-
-
 measures = [
     Measure(
         id="died_rate",
@@ -141,7 +138,7 @@ measures = [
     ),
     Measure(
         id="dpp4i_rate",
-        numerator="dpp4i",
+        numerator="dpp4",
         denominator="population",
        
     ),
