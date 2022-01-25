@@ -133,7 +133,6 @@ measures = [
         id="died_rate",
         numerator="died",
         denominator="population",
-        group_by=["covid_hospitalisation"],
     ),
     Measure(
         id="sglt2i_rate",
