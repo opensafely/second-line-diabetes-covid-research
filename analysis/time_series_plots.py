@@ -8,8 +8,8 @@ def import_timeseries():
     path = f"output/measure_{m.id}.csv"
     table = pd.read_csv(
         path,
-        usecols=["date", m.numerator, m.denominator] 
-        parse_dates=["date"]
+        usecols=["date", m.numerator, m.denominator],
+        parse_dates=["date"],
     )
     table = table.set_index(["date"])
     table = redact_small_numbers(table)
