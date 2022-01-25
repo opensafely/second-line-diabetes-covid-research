@@ -10,8 +10,6 @@ from cohortextractor import (
 )
 from codelists import *
 
-start_date  = "2020-09-01"
-
 study = StudyDefinition(
     # Configure the expectations framework
     default_expectations={
@@ -38,7 +36,6 @@ study = StudyDefinition(
                 "int": {"distribution": "population_ages"},
             },
         ),
-
 
         t1dm_gp=patients.with_these_clinical_events(
             diabetes_t1_codes,
